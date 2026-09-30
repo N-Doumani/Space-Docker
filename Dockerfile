@@ -1,11 +1,28 @@
-# Use the official Nginx image as the base
+# ---------------------------------------------------
+# المرحلة 1: بيئة بايثون المؤقتة لتنزيل الصور
+# ---------------------------------------------------
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# نسخ سكريبت التنزيل وتشغيله داخل الحاوية
+COPY download_images.py .
+RUN python download_images.py
+
+# ---------------------------------------------------
+# المرحلة 2: خادم Nginx النهائي للإنتاج
+# ---------------------------------------------------
 FROM nginx:latest
 
-# Optional: Copy your custom website files into Nginx's default public directory
-COPY ./html /usr/share/nginx/html
+# مجلد العمل الافتراضي لمواقع Nginx
+WORKDIR /usr/share/nginx/html
 
-# Expose port 80 to allow web traffic
+# نسخ ملف الموقع index.html من مجلد المشروع
+COPY ./html/index.html .
+
+# نسخ الصور التي تم تنزيلها في المرحلة الأولى (builder)
+COPY --from=builder /build/images ./images
+
 EXPOSE 80
 
-# Start Nginx in the foreground (default behavior of the base image)
 CMD ["nginx", "-g", "daemon off;"]
